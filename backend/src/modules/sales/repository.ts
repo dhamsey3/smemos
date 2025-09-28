@@ -13,13 +13,16 @@ export const listSales = (db: Database, merchantId: string) =>
 export const getSaleById = (db: Database, merchantId: string, saleId: string) =>
   db<Sale>('sales').where({ id: saleId, merchant_id: merchantId }).first();
 
-export const updateSaleStatus = (
+export const updateSaleStatus = async (
   db: Database,
   saleId: string,
   status: string,
   paymentReference?: string,
-) =>
-  db<Sale>('sales')
+) => {
+  await db<Sale>('sales')
     .where({ id: saleId })
-    .update({ status, payment_reference: paymentReference, updated_at: db.fn.now() })
-    .returning('*');
+    .update({ status, payment_reference: paymentReference, updated_at: db.fn.now() });
+
+  const updated = await db<Sale>('sales').where({ id: saleId }).first();
+  return updated ? [updated] : [];
+};

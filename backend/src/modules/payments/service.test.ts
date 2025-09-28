@@ -19,8 +19,12 @@ type FakeDatabase = Database & {
   sales: SaleRecord[];
 };
 
-const createFakeDatabase = (initialSales: SaleRecord[]): FakeDatabase => {
+const createFakeDatabase = (
+  initialSales: SaleRecord[],
+  options: { supportReturning?: boolean } = {},
+): FakeDatabase => {
   const sales = initialSales;
+  const { supportReturning = true } = options;
 
   const database = ((table: string) => {
     if (table !== 'sales') {
@@ -50,6 +54,10 @@ const createFakeDatabase = (initialSales: SaleRecord[]): FakeDatabase => {
 
           return {
             async returning(..._columns: unknown[]) {
+              if (!supportReturning) {
+                throw new Error('RETURNING not supported');
+              }
+
               return updated.map((entry) => ({ ...entry }));
             },
           };
@@ -102,6 +110,28 @@ describe('handleWebhook', () => {
     assert.equal(merchantId, 'merchant-1');
     assert.equal(entity, 'sale');
     assert.equal(id, 'sale-1');
+  });
+
+  it('processes the webhook when the database does not support RETURNING', async () => {
+    const pushSync = mock.fn(async () => {});
+    const databaseWithoutReturning = createFakeDatabase(
+      database.sales.map((record) => ({ ...record })),
+      {
+        supportReturning: false,
+      },
+    );
+
+    const event = { reference: 'PSP_ref', status: 'success' as const };
+    const rawBody = JSON.stringify(event);
+    const signature = crypto.createHash('sha256').update(rawBody).digest('hex');
+
+    await handleWebhook(signature, rawBody, event, {
+      database: databaseWithoutReturning,
+      pushSync: pushSync as unknown as PushSyncEvent,
+    });
+
+    assert.equal(databaseWithoutReturning.sales[0]?.status, 'PAID');
+    assert.equal(pushSync.mock.calls.length, 1);
   });
 
   it('returns early when the sale does not exist', async () => {
