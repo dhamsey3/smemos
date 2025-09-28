@@ -39,7 +39,7 @@ export const verifyOtpHandler = [
       res.json({ data: payload });
     } catch (error) {
       if (error instanceof AppError) {
-        return res.status(401).json({ message: error.message });
+        return res.status(error.statusCode).json({ message: error.message });
       }
 
       throw error;
