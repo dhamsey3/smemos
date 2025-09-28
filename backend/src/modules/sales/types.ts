@@ -5,6 +5,7 @@ export interface Sale {
   status: string;
   payment_reference: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface SaleItem {
