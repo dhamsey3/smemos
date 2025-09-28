@@ -5,6 +5,7 @@ import { AppError } from '../../middleware/error.js';
 import { pushSyncEvent } from '../sync/service.js';
 import { getSaleById, updateSaleStatus } from '../sales/repository.js';
 import type { PaymentIntentRequest, PaymentIntentResponse } from './types.js';
+import type { Database } from '../../db/knex.js';
 
 export const initiatePayment = async (
   merchantId: string,
@@ -34,7 +35,11 @@ export const handleWebhook = async (
   signature: string | undefined,
   rawBody: string,
   event: { reference: string; status: 'success' | 'failed' },
+  options: { database?: Database; pushSync?: typeof pushSyncEvent } = {},
 ) => {
+  const database = options.database ?? db;
+  const pushSync = options.pushSync ?? pushSyncEvent;
+
   if (!signature) {
     throw new AppError('Missing signature', 400);
   }
@@ -45,15 +50,15 @@ export const handleWebhook = async (
     throw new AppError('Invalid signature', 401);
   }
 
-  const [sale] = await db('sales')
+  const sale = await database('sales')
     .where({ payment_reference: event.reference })
-    .returning('*');
+    .first();
 
   if (!sale) {
     return;
   }
 
   const status = event.status === 'success' ? 'PAID' : 'FAILED';
-  const [updated] = await updateSaleStatus(db, sale.id, status, event.reference);
-  await pushSyncEvent(updated.merchant_id, 'sale', updated.id, updated);
+  const [updated] = await updateSaleStatus(database, sale.id, status, event.reference);
+  await pushSync(updated.merchant_id, 'sale', updated.id, updated);
 };
