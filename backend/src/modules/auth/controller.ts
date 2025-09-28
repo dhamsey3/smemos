@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import Joi from 'joi';
 
+import { AppError } from '../../middleware/error.js';
 import { validate } from '../../middleware/validate.js';
 import { passwordLogin, requestOtp, verifyOtp } from './service.js';
 
@@ -31,9 +32,18 @@ export const requestOtpHandler = [
 export const verifyOtpHandler = [
   validate(verifyOtpSchema),
   async (req: Request, res: Response) => {
-    const { phone, name } = req.body as { phone: string; name: string; otp: string };
-    const payload = await verifyOtp(phone, name);
-    res.json({ data: payload });
+    const { phone, name, otp } = req.body as { phone: string; name: string; otp: string };
+
+    try {
+      const payload = await verifyOtp(phone, name, otp);
+      res.json({ data: payload });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return res.status(401).json({ message: error.message });
+      }
+
+      throw error;
+    }
   },
 ];
 

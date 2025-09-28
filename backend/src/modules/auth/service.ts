@@ -4,13 +4,22 @@ import jwt from 'jsonwebtoken';
 import { appConfig } from '../../config/env.js';
 import { db } from '../../db/knex.js';
 import type { MerchantClaims, AuthTokens } from './types.js';
+import { AppError } from '../../middleware/error.js';
 import { createMerchant, findMerchantByPhone } from './repository.js';
 
 const MOCK_OTP = '123456';
 
 export const requestOtp = async (phone: string) => ({ otp: MOCK_OTP, phone });
 
-export const verifyOtp = async (phone: string, name: string): Promise<{ merchant: MerchantClaims; tokens: AuthTokens; }> => {
+export const verifyOtp = async (
+  phone: string,
+  name: string,
+  otp: string,
+): Promise<{ merchant: MerchantClaims; tokens: AuthTokens; }> => {
+  if (otp !== MOCK_OTP) {
+    throw new AppError('Invalid OTP', 401);
+  }
+
   let merchant = await findMerchantByPhone(db, phone);
 
   if (!merchant) {

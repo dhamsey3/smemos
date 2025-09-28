@@ -1,5 +1,13 @@
 # Node
-backend/node_modules
+backend/node_modules/*
+!backend/node_modules/bcryptjs/
+!backend/node_modules/bcryptjs/**
+!backend/node_modules/jsonwebtoken/
+!backend/node_modules/jsonwebtoken/**
+!backend/node_modules/knex/
+!backend/node_modules/knex/**
+!backend/node_modules/dotenv/
+!backend/node_modules/dotenv/**
 backend/dist
 backend/.env
 
