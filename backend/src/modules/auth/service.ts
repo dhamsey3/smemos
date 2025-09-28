@@ -9,6 +9,12 @@ import { createMerchant, findMerchantByPhone } from './repository.js';
 
 const MOCK_OTP = '123456';
 
+const ensureValidOtp = (submitted: string) => {
+  if (submitted !== MOCK_OTP) {
+    throw new AppError('Invalid OTP', 401);
+  }
+};
+
 export const requestOtp = async (phone: string) => ({ otp: MOCK_OTP, phone });
 
 export const verifyOtp = async (
@@ -16,9 +22,7 @@ export const verifyOtp = async (
   name: string,
   otp: string,
 ): Promise<{ merchant: MerchantClaims; tokens: AuthTokens; }> => {
-  if (otp !== MOCK_OTP) {
-    throw new AppError('Invalid OTP', 401);
-  }
+  ensureValidOtp(otp);
 
   let merchant = await findMerchantByPhone(db, phone);
 
