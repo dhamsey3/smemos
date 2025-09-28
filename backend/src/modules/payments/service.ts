@@ -51,6 +51,7 @@ export const handleWebhook = async (
   }
 
   const sale = await database('sales')
+    .select('*')
     .where({ payment_reference: event.reference })
     .first();
 
@@ -60,5 +61,8 @@ export const handleWebhook = async (
 
   const status = event.status === 'success' ? 'PAID' : 'FAILED';
   const [updated] = await updateSaleStatus(database, sale.id, status, event.reference);
-  await pushSync(updated.merchant_id, 'sale', updated.id, updated);
+  const syncSale =
+    updated ?? { ...sale, status, payment_reference: event.reference };
+
+  await pushSync(syncSale.merchant_id, 'sale', syncSale.id, syncSale);
 };
